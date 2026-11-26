@@ -1,0 +1,5 @@
+# run identifiers of the latency campaign on the raw clocks under which no measurement was started (E9_SPEC.md, G2.2): run_id, reason
+E9_s1_f_r2_20261125T092245Z	The measuring workstation could not reach the boards, and no measurement was started.
+E9_s1_i_20261125T092245Z	The measuring workstation could not reach the boards, and no measurement was started.
+E9_s1_g_20261125T092245Z	The measuring workstation could not reach the boards, and no measurement was started.
+E9_s1_g_r2_20261125T092245Z	The measuring workstation could not reach the boards, and no measurement was started.

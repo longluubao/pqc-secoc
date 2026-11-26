@@ -1,0 +1,2 @@
+# valid runs of a cell that already had its result (one result per cell: the first valid run of a cell is its result): run_id, key prefix, the accepted run of the cell, reason
+E9_probetest_20261125T143545Z	e9.probetest	E9_probetest_20261125T092245Z	The probe test was run again as the check of the probe before the second window of the latency campaign; the result of the cell is its first run, and no key comes from this directory.

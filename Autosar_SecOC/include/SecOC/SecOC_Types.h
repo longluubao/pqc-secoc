@@ -1,0 +1,82 @@
+#ifndef INCLUDE_SECOC_TYPES_H_
+#define INCLUDE_SECOC_TYPES_H_
+
+/********************************************************************************************************/
+/************************************************INCLUDES************************************************/
+/********************************************************************************************************/
+
+#include "Std_Types.h"
+#include "Com/ComStack_Types.h"
+#include "Encrypt/Crypto_GeneralTypes.h"
+
+
+
+
+/********************************************************************************************************/
+/*******************************************EnumAndStruct************************************************/
+/********************************************************************************************************/
+typedef enum {
+    SECOC_BOTH = 0,
+    SECOC_FAILURE_ONLY,
+    SECOC_NONE
+}SecOC_StatusPropagationMode_Type;
+
+typedef enum {
+    SECOC_AUTH_COLLECTON_PDU = 0,
+    SECOC_CRYPTO_COLLECTON_PDU,
+    SECOC_SECURED_PDU_CANIF,
+    SECOC_SECURED_PDU_CANTP,
+    SECOC_SECURED_PDU_FRIF,
+    SECOC_SECURED_PDU_SOADTP,
+    SECOC_SECURED_PDU_SOADIF,
+
+    
+}SecOC_PduCollection_Type;
+
+
+
+typedef enum {
+    SECOC_QUEUE = 0,
+    SECOC_REJECT,
+    SECOC_REPLACE
+}SecOC_ReceptionOverflowStrategy_Type;
+
+
+
+/* The Csm job a PDU references (SecOCTxAuthServiceConfigRef / SecOCRxAuthServiceConfigRef) and its
+ * service: SecOC calls the MAC interface for a MAC job, the signature interface otherwise. */
+typedef struct {
+    uint32 CsmJobId;
+    Crypto_ServiceInfoType CsmJobService;
+}Csm_JobType;
+
+
+
+
+
+
+
+typedef enum {
+    SECOC_IFPDU,    /* SECOC_IFPDU Interface communication API */
+    SECOC_TPPDU,    /* SECOC_TPPDU Transport Protocol communication API */
+} SecOC_PduType_Type;
+
+
+
+
+
+
+typedef enum {
+    SECOC_CFUNC,
+    SECOC_RTE,
+} SecOC_QueryFreshnessValue_Type;
+
+
+
+typedef enum       /* SecOC status*/
+{
+    SECOC_UNINIT,   /* SecOC uninitialized*/
+    SECOC_INIT      /* SecOC initialized*/
+}SecOC_StateType;
+
+#endif

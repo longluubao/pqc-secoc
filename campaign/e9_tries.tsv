@@ -1,0 +1,13 @@
+# runs of the latency campaign on the raw clocks (E9_SPEC.md, Addenda E and G), one line per run of a latency cell: run_id, prefix, status (result | not_a_result), reason
+E9_s1_h_20261125T092245Z	e9.s1.h	result	
+E9_s1_b_20261125T092245Z	e9.s1.b	result	
+E9_s1_d_20261125T092245Z	e9.s1.d	result	
+E9_s1_e_20261125T092245Z	e9.s1.e	result	
+E9_s1_c_20261125T092245Z	e9.s1.c	result	
+E9_s1_a_20261125T092245Z	e9.s1.a	result	
+E9_s1_f_20261125T092245Z	e9.s1.f	not_a_result	The driver lost its sessions to the boards while the measuring workstation was asleep, and the files of the run were not collected.
+E9_s1_f_r2_20261125T143545Z	e9.s1.f	result	
+E9_s1_i_r2_20261125T143545Z	e9.s1.i	result	
+E9_s1_g_20261125T143545Z	e9.s1.g	result	
+E9_s2_a_20261125T143545Z	e9.s2.a	result	
+E9_s3_a_20261125T143545Z	e9.s3.a	result	

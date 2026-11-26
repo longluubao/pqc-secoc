@@ -1,0 +1,22 @@
+# runs of the further cells of Addendum H of E9_SPEC.md (E3r, E6m, E6p, E6c), one line per run or, for a cell that was not run, per cell: run_id (empty for a cell that was not run), prefix, status (result | not_a_result | not_run), reason
+E3r_s1_sig_restart_tx_20261125T164515Z	e3r.s1.sig_restart_tx	result	
+E3r_s1_sig_restart_rx_20261125T164515Z	e3r.s1.sig_restart_rx	result	
+E3r_s1_sig_rekey_20261125T164515Z	e3r.s1.sig_rekey	result	
+E3r_s1_mac_restart_tx_20261125T164515Z	e3r.s1.mac_restart_tx	result	
+E3r_s1_mac_restart_rx_20261125T164515Z	e3r.s1.mac_restart_rx	result	
+E3r_s1_mac_rekey_20261125T164515Z	e3r.s1.mac_rekey	result	
+E3r_s1_sig_keyrepl_20261125T164515Z	e3r.s1.sig_keyrepl	result	
+E6m_s1_sig_p50000_k20_other_20261125T172651Z	e6m.s1.sig_p50000_k20_other	result	
+E6m_s1_sig_p100000_k40_other_20261125T172651Z	e6m.s1.sig_p100000_k40_other	result	
+E6p_s1_sig_p20000_k8_other_20261125T172651Z	e6p.s1.sig_p20000_k8_other	result	
+E6p_s1_sig_p10000_k4_other_20261125T172651Z	e6p.s1.sig_p10000_k4_other	result	
+E6p_s1_sig_p20000_k6_other_20261125T172651Z	e6p.s1.sig_p20000_k6_other	result	
+E6p_s1_sig_p10000_k5_other_20261125T172651Z	e6p.s1.sig_p10000_k5_other	result	
+E6p_s1_sig_p20000_k4_other_20261125T172651Z	e6p.s1.sig_p20000_k4_other	result	
+E6p_s1_sig_p10000_k3_other_20261125T172651Z	e6p.s1.sig_p10000_k3_other	result	
+E6p_s1_sig_p10000_k2_other_20261125T172651Z	e6p.s1.sig_p10000_k2_other	result	
+	e6c.s1.sig_p10000_k8_4proc_other	not_run	The start rule of a run with several busy cores, both boards below its temperature limit, refused the start while board B stayed above the limit when idle; the dry run of this kind was refused three times, this cell once, and the block was then stopped by hand between two attempts. A refused start is no try and leaves no run directory. Not run in this window.
+	e6c.s1.sig_p10000_k12_4proc_other	not_run	Not started: the block was stopped by hand after the start rule of a run with several busy cores had refused the dry run of this kind three times and the other cell once, with board B above the temperature limit when idle. No run directory. Not run in this window.
+E6c_s1_sig_p10000_k8_4proc_other_20261125T232507Z	e6c.s1.sig_p10000_k8_4proc_other	result	
+E6c_s1_sig_p10000_k12_4proc_other_20261125T232507Z	e6c.s1.sig_p10000_k12_4proc_other	not_a_result	Second window (2026-11-26, Addendum I of E9_SPEC.md). Stopped by the temperature gate: board A reached 78 C during the run (EXCLUDED). Run again by H5.
+E6c_s1_sig_p10000_k12_4proc_other_r2_20261125T232507Z	e6c.s1.sig_p10000_k12_4proc_other	not_a_result	Second window. Ran to its end and is excluded by the rule on other busy processes: the snapshot after the run on board A lists a process pgrep above the limit of that gate (EXCLUDED). By H8.1 a run excluded for this reason is not run again; the cell has no result.
