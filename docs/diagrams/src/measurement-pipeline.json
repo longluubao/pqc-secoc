@@ -1,0 +1,667 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "From a two-board run to a number in the article",
+    "locale": "en",
+    "output": "measurement-pipeline.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/longluubao/pqc-secoc",
+      "provider": "github",
+      "revision": "4ba87d9e5df84b6fee36c0514c618a4a28f081ea"
+    },
+    "legend": {
+      "entries": {
+        "emphasis": {
+          "label": "path of a number"
+        },
+        "dashed": {
+          "label": "documented, not coded here"
+        },
+        "default": {
+          "label": "command, link, other file"
+        },
+        "database": {
+          "label": "file or directory"
+        }
+      }
+    }
+  },
+  "stages": [
+    {
+      "label": "Measure on the boards"
+    },
+    {
+      "label": "Run directory and checks"
+    },
+    {
+      "label": "Analysis, 2nd reading"
+    },
+    {
+      "label": "Merged numbers"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "sessions",
+      "type": "external",
+      "stage": 0,
+      "row": 0,
+      "label": "Session scripts",
+      "sublabel": "not in repo; with the dataset",
+      "tag": "doi:10.5281/zenodo.24506181",
+      "sources": [
+        {
+          "path": "README.md",
+          "line": 41,
+          "end_line": 43,
+          "label": "not in this repository"
+        },
+        {
+          "path": "README.md",
+          "line": 224,
+          "end_line": 227,
+          "label": "dataset DOI"
+        },
+        {
+          "path": "scripts/run_bench_net.sh",
+          "line": 108,
+          "end_line": 109,
+          "label": "campaign scripts call the driver"
+        }
+      ]
+    },
+    {
+      "id": "driver",
+      "type": "frontend",
+      "stage": 0,
+      "row": 1,
+      "label": "Driver machine",
+      "sublabel": "scripts/run_bench_net.sh",
+      "tag": "or scripts/run_e2e.sh",
+      "sources": [
+        {
+          "path": "scripts/run_bench_net.sh",
+          "line": 2,
+          "end_line": 3,
+          "label": "harness driver header"
+        },
+        {
+          "path": "scripts/run_bench_net.sh",
+          "line": 181,
+          "end_line": 185,
+          "label": "ssh -F PI_SSH_CFG pi-<host>"
+        },
+        {
+          "path": "scripts/run_e2e.sh",
+          "line": 158,
+          "end_line": 162,
+          "label": "gateway driver ssh helper"
+        }
+      ]
+    },
+    {
+      "id": "boardA",
+      "type": "backend",
+      "stage": 0,
+      "row": 2,
+      "label": "Board A: pi-iris",
+      "sublabel": "transmitter, initiator",
+      "tag": "harness or SecOC writes CSV",
+      "sources": [
+        {
+          "path": "scripts/run_bench_net.sh",
+          "line": 133,
+          "end_line": 134,
+          "label": "TX_HOST=iris, RX_HOST=baolong"
+        },
+        {
+          "path": "scripts/run_bench_net.sh",
+          "line": 418,
+          "label": "bench_net_tx launch"
+        },
+        {
+          "path": "scripts/run_e2e.sh",
+          "line": 311,
+          "end_line": 318,
+          "label": "start_tx: SecOC, app_tx.csv"
+        }
+      ]
+    },
+    {
+      "id": "boardB",
+      "type": "backend",
+      "stage": 0,
+      "row": 3,
+      "label": "Board B: pi-baolong",
+      "sublabel": "receiver, responder",
+      "tag": "harness or SecOC writes CSV",
+      "sources": [
+        {
+          "path": "scripts/run_bench_net.sh",
+          "line": 133,
+          "end_line": 134,
+          "label": "TX_HOST=iris, RX_HOST=baolong"
+        },
+        {
+          "path": "scripts/run_bench_net.sh",
+          "line": 413,
+          "label": "bench_net_rx launch"
+        },
+        {
+          "path": "scripts/run_e2e.sh",
+          "line": 290,
+          "end_line": 295,
+          "label": "start_rx: SecOC, app_rx.csv"
+        }
+      ]
+    },
+    {
+      "id": "markers",
+      "type": "database",
+      "stage": 1,
+      "row": 0,
+      "label": "Marker files",
+      "sublabel": "in runs/<run_id>/",
+      "tag": "FUNCTIONAL: run_e2e.sh",
+      "sources": [
+        {
+          "path": "scripts/run_bench_net.sh",
+          "line": 376,
+          "label": "DRY_RUN"
+        },
+        {
+          "path": "scripts/run_e2e.sh",
+          "line": 516,
+          "end_line": 518,
+          "label": "FUNCTIONAL, DRY_RUN"
+        },
+        {
+          "path": "scripts/run_bench_net.sh",
+          "line": 305,
+          "end_line": 331,
+          "label": "EXCLUDED, NOTE_*"
+        }
+      ]
+    },
+    {
+      "id": "files",
+      "type": "database",
+      "stage": 1,
+      "row": 2,
+      "label": "runs/<run_id>/",
+      "sublabel": "*.csv, env_<host>.txt",
+      "tag": "not in repo; in the dataset",
+      "sources": [
+        {
+          "path": "scripts/run_bench_net.sh",
+          "line": 522,
+          "end_line": 529,
+          "label": "collect(): rsync from the boards"
+        },
+        {
+          "path": ".gitignore",
+          "line": 4,
+          "label": "runs/ is ignored"
+        },
+        {
+          "path": "docs/DATA_SCHEMA.md",
+          "line": 174,
+          "label": "dataset manifest lists a run file"
+        }
+      ]
+    },
+    {
+      "id": "checktxt",
+      "type": "database",
+      "stage": 1,
+      "row": 4,
+      "label": "check.txt",
+      "sublabel": "then MANIFEST.sha256",
+      "tag": "in runs/<run_id>/",
+      "sources": [
+        {
+          "path": "scripts/run_bench_net.sh",
+          "line": 582,
+          "end_line": 589,
+          "label": "check.txt, then the manifest"
+        },
+        {
+          "path": "scripts/run_e2e.sh",
+          "line": 492,
+          "end_line": 494,
+          "label": "check_run.py > check.txt"
+        },
+        {
+          "path": "scripts/run_e2e.sh",
+          "line": 221,
+          "end_line": 225,
+          "label": "manifest in the exit trap"
+        }
+      ]
+    },
+    {
+      "id": "gatev",
+      "type": "security",
+      "stage": 1,
+      "row": 1,
+      "label": "gate_verdict()",
+      "sublabel": "in run_bench_net.sh",
+      "tag": "validity gates",
+      "sources": [
+        {
+          "path": "scripts/run_bench_net.sh",
+          "line": 297,
+          "end_line": 302,
+          "label": "gate(): snapshot on a board"
+        },
+        {
+          "path": "scripts/run_bench_net.sh",
+          "line": 305,
+          "end_line": 331,
+          "label": "gate_verdict(): first vs last"
+        },
+        {
+          "path": "scripts/run_bench_net.sh",
+          "line": 531,
+          "end_line": 567,
+          "label": "finish(): further exclusions"
+        }
+      ]
+    },
+    {
+      "id": "checkers",
+      "type": "security",
+      "stage": 1,
+      "row": 3,
+      "label": "check_csv.py",
+      "sublabel": "check_clock_probe.py",
+      "tag": "run_e2e.sh: check_run.py",
+      "sources": [
+        {
+          "path": "Autosar_SecOC/bench/check_csv.py",
+          "line": 2,
+          "end_line": 12,
+          "label": "harness CSV schema"
+        },
+        {
+          "path": "Autosar_SecOC/bench/check_clock_probe.py",
+          "line": 2,
+          "end_line": 16,
+          "label": "probe files"
+        },
+        {
+          "path": "scripts/check_run.py",
+          "line": 2,
+          "end_line": 13,
+          "label": "gateway run"
+        }
+      ]
+    },
+    {
+      "id": "acceptance",
+      "type": "external",
+      "stage": 2,
+      "row": 0,
+      "label": "Acceptance",
+      "sublabel": "documented: driver status 0,",
+      "tag": "no EXCLUDED, reader agrees",
+      "sources": [
+        {
+          "path": "docs/E9_SPEC.md",
+          "line": 529,
+          "label": "documented acceptance rule"
+        },
+        {
+          "path": "docs/CAMPAIGN.md",
+          "line": 97,
+          "label": "documented procedure"
+        },
+        {
+          "path": "campaign/own/periodic_compare.py",
+          "line": 407,
+          "end_line": 409,
+          "label": "reader verdict, exit status"
+        }
+      ]
+    },
+    {
+      "id": "reader",
+      "type": "security",
+      "stage": 2,
+      "row": 1,
+      "label": "Second reader",
+      "sublabel": "campaign/own/<reader>",
+      "tag": "own code, key by key",
+      "sources": [
+        {
+          "path": "campaign/own/periodic_compare.py",
+          "line": 1,
+          "end_line": 4,
+          "label": "second reading, key by key"
+        },
+        {
+          "path": "campaign/own/periodic_compare.py",
+          "line": 228,
+          "end_line": 232,
+          "label": "reads numbers.csv"
+        },
+        {
+          "path": "README.md",
+          "line": 165,
+          "end_line": 168,
+          "label": "reader call"
+        }
+      ]
+    },
+    {
+      "id": "maketables",
+      "type": "backend",
+      "stage": 2,
+      "row": 2,
+      "label": "make_tables.py",
+      "sublabel": "numbers.csv, numbers.tex",
+      "tag": "keys under --key-prefix",
+      "sources": [
+        {
+          "path": "analysis-toolkit/analysis/make_tables.py",
+          "line": 1,
+          "end_line": 9,
+          "label": "run directory to numbers"
+        },
+        {
+          "path": "analysis-toolkit/analysis/make_tables.py",
+          "line": 1456,
+          "end_line": 1457,
+          "label": "--key-prefix"
+        },
+        {
+          "path": "analysis-toolkit/analysis/csvio.py",
+          "line": 185,
+          "end_line": 208,
+          "label": "markers the toolkit reads"
+        }
+      ]
+    },
+    {
+      "id": "accepted",
+      "type": "database",
+      "stage": 3,
+      "row": 0,
+      "label": "accepted_runs.tsv",
+      "sublabel": "run dir, prefix, reader or -",
+      "tag": "read by no code here",
+      "sources": [
+        {
+          "path": "campaign/accepted_runs.tsv",
+          "line": 1,
+          "end_line": 3,
+          "label": "columns of the list"
+        },
+        {
+          "path": "campaign/accepted_runs.tsv",
+          "line": 20,
+          "label": "a row with - for no reader"
+        },
+        {
+          "path": "README.md",
+          "line": 165,
+          "end_line": 168,
+          "label": "what the list holds"
+        }
+      ]
+    },
+    {
+      "id": "merge",
+      "type": "backend",
+      "stage": 3,
+      "row": 2,
+      "label": "merge_numbers.py",
+      "sublabel": "refuses EXCLUDED, DRY_RUN",
+      "tag": "unless --allow-marked",
+      "sources": [
+        {
+          "path": "analysis-toolkit/analysis/merge_numbers.py",
+          "line": 1,
+          "end_line": 22,
+          "label": "inputs, outputs, errors"
+        },
+        {
+          "path": "analysis-toolkit/analysis/merge_numbers.py",
+          "line": 78,
+          "end_line": 92,
+          "label": "marked input, two values"
+        },
+        {
+          "path": "analysis-toolkit/analysis/merge_numbers.py",
+          "line": 115,
+          "end_line": 133,
+          "label": "reads only the given dirs"
+        }
+      ]
+    },
+    {
+      "id": "merged",
+      "type": "database",
+      "stage": 3,
+      "row": 3,
+      "label": "numbers_all.tex",
+      "sublabel": "one definition per key",
+      "tag": "not in this repo",
+      "sources": [
+        {
+          "path": "analysis-toolkit/analysis/merge_numbers.py",
+          "line": 9,
+          "end_line": 15,
+          "label": "the merged files"
+        },
+        {
+          "path": "analysis-toolkit/README.md",
+          "line": 1172,
+          "end_line": 1180,
+          "label": "numbers_all.tex"
+        },
+        {
+          "path": "README.md",
+          "line": 160,
+          "end_line": 162,
+          "label": "commands"
+        }
+      ]
+    },
+    {
+      "id": "article",
+      "type": "external",
+      "stage": 3,
+      "row": 4,
+      "label": "Article",
+      "sublabel": "prints \\meas{key}",
+      "tag": "not in this repo",
+      "sources": [
+        {
+          "path": "analysis-toolkit/README.md",
+          "line": 1127,
+          "end_line": 1142,
+          "label": "no number typed by hand"
+        },
+        {
+          "path": "docs/CAMPAIGN.md",
+          "line": 3,
+          "label": "numbers only through the toolkit"
+        },
+        {
+          "path": "README.md",
+          "line": 3,
+          "end_line": 7,
+          "label": "the article"
+        }
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "id": "sequence",
+      "from": "sessions",
+      "to": "driver",
+      "label": "sequenced sessions",
+      "variant": "dashed"
+    },
+    {
+      "id": "ssh-a",
+      "from": "driver",
+      "to": "boardA",
+      "label": "ssh"
+    },
+    {
+      "id": "ssh-b",
+      "from": "driver",
+      "to": "boardB",
+      "label": "ssh",
+      "fromSide": "left",
+      "toSide": "left",
+      "route": "vertical-channel",
+      "channelX": 26
+    },
+    {
+      "id": "link",
+      "from": "boardA",
+      "to": "boardB",
+      "label": "eth0 direct link, TCP"
+    },
+    {
+      "id": "rsync-a",
+      "from": "boardA",
+      "to": "files",
+      "label": "rsync to driver",
+      "variant": "emphasis"
+    },
+    {
+      "id": "rsync-b",
+      "from": "boardB",
+      "to": "files",
+      "label": "rsync to driver",
+      "variant": "emphasis"
+    },
+    {
+      "id": "start-markers",
+      "from": "driver",
+      "to": "markers",
+      "label": "DRY_RUN, FUNCTIONAL"
+    },
+    {
+      "id": "gates",
+      "from": "files",
+      "to": "gatev",
+      "label": "gates_<host>.txt",
+      "labelDy": -15
+    },
+    {
+      "id": "excluded",
+      "from": "gatev",
+      "to": "markers",
+      "label": "EXCLUDED, NOTE_*",
+      "labelDy": -15
+    },
+    {
+      "id": "csv",
+      "from": "files",
+      "to": "checkers",
+      "label": "*.csv"
+    },
+    {
+      "id": "checkout",
+      "from": "checkers",
+      "to": "checktxt",
+      "label": "check.txt"
+    },
+    {
+      "id": "rundir",
+      "from": "files",
+      "to": "maketables",
+      "label": "<run_dir>",
+      "variant": "emphasis"
+    },
+    {
+      "id": "raw",
+      "from": "files",
+      "to": "reader",
+      "label": "raw files"
+    },
+    {
+      "id": "numbers",
+      "from": "maketables",
+      "to": "reader",
+      "label": "numbers.csv",
+      "labelDy": -15
+    },
+    {
+      "id": "verdict",
+      "from": "reader",
+      "to": "acceptance",
+      "label": "reader's verdict",
+      "variant": "dashed",
+      "labelDy": -15
+    },
+    {
+      "id": "accept",
+      "from": "acceptance",
+      "to": "accepted",
+      "label": "lists the run",
+      "variant": "dashed"
+    },
+    {
+      "id": "merge-in",
+      "from": "maketables",
+      "to": "merge",
+      "label": "numbers.tex, .csv",
+      "variant": "emphasis"
+    },
+    {
+      "id": "merge-out",
+      "from": "merge",
+      "to": "merged",
+      "label": "merged keys",
+      "variant": "emphasis"
+    },
+    {
+      "id": "to-article",
+      "from": "merged",
+      "to": "article",
+      "label": "\\input, \\meas{key}",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Who checks",
+      "items": [
+        "run_bench_net.sh: gate_verdict() judges the snapshots in gates_<host>.txt (five values first against last; active throttling, the highest temperature and other busy processes in any snapshot) and the footers and headers of the CSV files, and writes EXCLUDED with the reason; NOTE_* files are recorded, not judged.",
+        "Harness run: the driver puts the output of check_csv.py and check_clock_probe.py --form into check.txt. Gateway run (run_e2e.sh, marker FUNCTIONAL): the driver puts the output of check_run.py into check.txt; that driver writes no gates_<host>.txt and no EXCLUDED.",
+        "make_tables.py marks every number of a DRY_RUN, PILOT or EXCLUDED run as not a result; merge_numbers.py stops on such an input unless --allow-marked.",
+        "A reader in campaign/own/ recomputes the quantities from the raw files with its own code and compares them key by key with numbers.csv.",
+        "The driver writes MANIFEST.sha256 last, with shasum -a 256 over the files of runs/<run_id>/; no program in the repository reads or verifies it."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Documented, not enforced by this code",
+      "items": [
+        "Acceptance of a run (driver status 0, no EXCLUDED file, the second reader agrees) is a documented procedure. accepted_runs.tsv records its outcome: run directory, key prefix and reader, or - where no reader was compared. No program in the repository reads the list.",
+        "merge_numbers.py merges the analysis directories it is given; it reads no list and no reader verdict.",
+        "The article reads the merged file with \\input and prints each number as \\meas{key}; an unknown key is a LaTeX error unless the article defines \\measundefined before the \\input."
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Not in this repository",
+      "items": [
+        "The run directories: runs/ is ignored by git. The drivers create them on the driver machine; they are archived with the dataset, https://doi.org/10.5281/zenodo.24506181 (docs/CAMPAIGN.md calls accepted_runs.tsv the run index of the dataset).",
+        "The scripts that sequenced the measurement sessions; the README says they are archived with the dataset.",
+        "The analysis outputs, numbers_all.tex and the article.",
+        "Not drawn: single-board runs (run_single_node.sh on a board), which accepted_runs.tsv lists as well."
+      ]
+    }
+  ]
+}

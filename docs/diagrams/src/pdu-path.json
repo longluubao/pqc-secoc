@@ -1,0 +1,409 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "One Secured I-PDU from board A to board B (signature variant)",
+    "output": "pdu-path.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/longluubao/pqc-secoc",
+      "provider": "github",
+      "revision": "4ba87d9e5df84b6fee36c0514c618a4a28f081ea"
+    },
+    "legend": {
+      "entries": {
+        "emphasis": {
+          "label": "the PDU moves on"
+        },
+        "security": {
+          "label": "sign, verify, report the status"
+        },
+        "return": {
+          "label": "result or confirmation"
+        }
+      }
+    }
+  },
+  "participants": [
+    {
+      "id": "appTx",
+      "type": "frontend",
+      "label": "App_Tx",
+      "sublabel": "application (A)",
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/App/App_Tx.c",
+          "line": 60,
+          "end_line": 91,
+          "label": "App_Tx_Submit"
+        },
+        {
+          "path": "Autosar_SecOC/source/App/App_Tx.c",
+          "line": 228,
+          "end_line": 254,
+          "label": "App_Tx_TxConfirmation"
+        },
+        {
+          "path": "Autosar_SecOC/source/EcuM/EcuM.c",
+          "line": 1123,
+          "end_line": 1141,
+          "label": "order in the cycle"
+        }
+      ]
+    },
+    {
+      "id": "secocA",
+      "type": "backend",
+      "label": "SecOC (A)",
+      "sublabel": "with FVM",
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/SecOC/SecOC.c",
+          "line": 1486,
+          "end_line": 1567,
+          "label": "authenticate_PQC"
+        },
+        {
+          "path": "Autosar_SecOC/source/SecOC/SecOC.c",
+          "line": 614,
+          "end_line": 725,
+          "label": "SecOC_MainFunctionTx"
+        },
+        {
+          "path": "Autosar_SecOC/source/SecOC/SecOC.c",
+          "line": 900,
+          "end_line": 936,
+          "label": "SecOC_TpTxConfirmation"
+        }
+      ]
+    },
+    {
+      "id": "cryA",
+      "type": "security",
+      "label": "Crypto (A)",
+      "sublabel": "Csm to liboqs",
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/Csm/Csm.c",
+          "line": 862,
+          "end_line": 952,
+          "label": "Csm_SignatureGenerate"
+        },
+        {
+          "path": "Autosar_SecOC/source/CryIf/CryIf.c",
+          "line": 113,
+          "end_line": 138,
+          "label": "CryIf_SignatureGenerate"
+        },
+        {
+          "path": "Autosar_SecOC/source/PQC/PQC.c",
+          "line": 452,
+          "end_line": 496,
+          "label": "PQC_MLDSA_Sign"
+        }
+      ]
+    },
+    {
+      "id": "soadA",
+      "type": "messagebus",
+      "label": "SoAd (A)",
+      "sublabel": "with TcpIp",
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/SoAd/SoAd.c",
+          "line": 1858,
+          "end_line": 1984,
+          "label": "SoAd_MainFunctionTx"
+        },
+        {
+          "path": "Autosar_SecOC/source/TcpIp/TcpIp.c",
+          "line": 969,
+          "end_line": 1011,
+          "label": "TcpIp_TcpTransmit"
+        },
+        {
+          "path": "Autosar_SecOC/source/PduR/Pdur_SecOC.c",
+          "line": 40,
+          "end_line": 67,
+          "label": "PduR_SecOCTransmit"
+        }
+      ]
+    },
+    {
+      "id": "soadB",
+      "type": "messagebus",
+      "label": "SoAd (B)",
+      "sublabel": "with TcpIp",
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/SoAd/SoAd.c",
+          "line": 2012,
+          "end_line": 2061,
+          "label": "SoAd_MainFunctionRx"
+        },
+        {
+          "path": "Autosar_SecOC/source/SoAd/SoAd.c",
+          "line": 728,
+          "end_line": 880,
+          "label": "PDU header, TP calls"
+        },
+        {
+          "path": "Autosar_SecOC/source/TcpIp/TcpIp.c",
+          "line": 1160,
+          "end_line": 1177,
+          "label": "recv"
+        }
+      ]
+    },
+    {
+      "id": "secocB",
+      "type": "backend",
+      "label": "SecOC (B)",
+      "sublabel": "with FVM",
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/SecOC/SecOC.c",
+          "line": 1766,
+          "end_line": 1897,
+          "label": "SecOC_MainFunctionRx"
+        },
+        {
+          "path": "Autosar_SecOC/source/SecOC/SecOC.c",
+          "line": 1627,
+          "end_line": 1747,
+          "label": "layout check, verify_PQC"
+        },
+        {
+          "path": "Autosar_SecOC/source/SecOC/FVM.c",
+          "line": 139,
+          "end_line": 189,
+          "label": "FVM_GetRxFreshness"
+        }
+      ]
+    },
+    {
+      "id": "cryB",
+      "type": "security",
+      "label": "Crypto (B)",
+      "sublabel": "Csm to liboqs",
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/Csm/Csm.c",
+          "line": 954,
+          "end_line": 1086,
+          "label": "Csm_SignatureVerify"
+        },
+        {
+          "path": "Autosar_SecOC/source/CryIf/CryIf.c",
+          "line": 140,
+          "end_line": 175,
+          "label": "CryIf_SignatureVerify"
+        },
+        {
+          "path": "Autosar_SecOC/source/PQC/PQC.c",
+          "line": 501,
+          "end_line": 534,
+          "label": "PQC_MLDSA_Verify"
+        }
+      ]
+    },
+    {
+      "id": "appRx",
+      "type": "frontend",
+      "label": "Com + App_Rx",
+      "sublabel": "application (B)",
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/Com/Com.c",
+          "line": 1039,
+          "end_line": 1072,
+          "label": "Com_RxIndication"
+        },
+        {
+          "path": "Autosar_SecOC/source/App/App_Rx.c",
+          "line": 93,
+          "end_line": 128,
+          "label": "App_Rx_RxNotification"
+        },
+        {
+          "path": "Autosar_SecOC/source/App/App_Rx.c",
+          "line": 168,
+          "end_line": 195,
+          "label": "status callout"
+        }
+      ]
+    }
+  ],
+  "segments": [
+    {
+      "from": 158,
+      "to": 202,
+      "label": "Board A · one cyclic task, Os_TaskBswCycle, calls all main functions shown · App_Tx_MainFunction calls SecOC directly (no Com, no RTE)"
+    },
+    {
+      "from": 230,
+      "to": 432,
+      "label": "Board A · same cycle · SecOC_MainFunctionTx signs Data ID | Authentic I-PDU | complete freshness value from FVM (MAC variant: Csm_MacGenerate)"
+    },
+    {
+      "from": 460,
+      "to": 638,
+      "label": "Board A · same cycle · SoAd_MainFunctionTx: writes the PDU header, TcpIp_TcpTransmit writes to the TCP socket"
+    },
+    {
+      "from": 666,
+      "to": 800,
+      "label": "Board B · cycle N = last read of the PDU · SoAd_MainFunctionRx: TcpIp_MainFunction reads the socket, PDU boundaries from the PDU header"
+    },
+    {
+      "from": 828,
+      "to": 1168,
+      "label": "Board B · cycle N + 1 · SecOC_MainFunctionRx: (1) layout, (2) freshness value > last accepted, (3) signature; first failure drops the PDU"
+    }
+  ],
+  "messages": [
+    {
+      "id": "submit",
+      "from": "appTx",
+      "to": "secocA",
+      "y": 188,
+      "variant": "emphasis",
+      "label": "SecOC_TpTransmit(Authentic I-PDU)"
+    },
+    {
+      "id": "sign",
+      "from": "secocA",
+      "to": "cryA",
+      "y": 260,
+      "variant": "security",
+      "label": "Csm_SignatureGenerate → CryIf → PQC_MLDSA_Sign → liboqs (identity key)",
+      "note": "synchronous; long-term ML-DSA-65 key"
+    },
+    {
+      "id": "signature",
+      "from": "cryA",
+      "to": "secocA",
+      "y": 328,
+      "variant": "return",
+      "label": "signature (3309 bytes) made with context \"PQC-SecOC-PDU-v1\" + session hash",
+      "note": "MAC variant: HMAC-SHA-256 tag, 16 bytes, session key of this direction"
+    },
+    {
+      "id": "handDown",
+      "from": "secocA",
+      "to": "soadA",
+      "y": 418,
+      "variant": "emphasis",
+      "label": "PduR_SecOCTransmit → SoAd_TpTransmit(Secured I-PDU)"
+    },
+    {
+      "id": "wire",
+      "from": "soadA",
+      "to": "soadB",
+      "y": 490,
+      "variant": "emphasis",
+      "label": "TCP, not encrypted: PDU header 8 + [header 1 | Authentic I-PDU | freshness value 4 | signature 3309] bytes",
+      "note": "PDU header = header ID, length; [ ] = Secured I-PDU"
+    },
+    {
+      "id": "confirmSecOC",
+      "from": "soadA",
+      "to": "secocA",
+      "y": 568,
+      "variant": "return",
+      "label": "PduR_SoAdTpTxConfirmation → SecOC_TpTxConfirmation (socket accepted the bytes)",
+      "note": "not on receipt by board B"
+    },
+    {
+      "id": "confirmApp",
+      "from": "secocA",
+      "to": "appTx",
+      "y": 624,
+      "variant": "return",
+      "label": "PduR → Com → App_Tx_TxConfirmation(E_OK)"
+    },
+    {
+      "id": "rxStart",
+      "from": "soadB",
+      "to": "secocB",
+      "y": 696,
+      "variant": "emphasis",
+      "label": "PduR → SecOC_StartOfReception once, SecOC_CopyRxData per read",
+      "note": "SoAd discards unknown header IDs, lengths outside the route's limits"
+    },
+    {
+      "id": "rxDone",
+      "from": "soadB",
+      "to": "secocB",
+      "y": 786,
+      "variant": "emphasis",
+      "label": "PduR → SecOC_TpRxIndication (PDU complete, not yet checked)"
+    },
+    {
+      "id": "verify",
+      "from": "secocB",
+      "to": "cryB",
+      "y": 858,
+      "variant": "security",
+      "label": "(3) Csm_SignatureVerify → CryIf → PQC_MLDSA_Verify → liboqs",
+      "note": "only after (1) and (2); (1) = exact length of the layout"
+    },
+    {
+      "id": "verdict",
+      "from": "cryB",
+      "to": "secocB",
+      "y": 936,
+      "variant": "return",
+      "label": "verdict (pinned public key of the peer, session context)",
+      "note": "MAC variant: Csm_MacVerify, session key held in the crypto driver"
+    },
+    {
+      "id": "callout",
+      "from": "secocB",
+      "to": "appRx",
+      "y": 1026,
+      "variant": "security",
+      "label": "SecOC_VerificationStatusCallout, every attempt",
+      "note": "a failed check drops the PDU, the freshness counter stays, later PDUs are still routed"
+    },
+    {
+      "id": "deliver",
+      "from": "secocB",
+      "to": "appRx",
+      "y": 1126,
+      "variant": "emphasis",
+      "label": "checks passed: PduR → Com → App_Rx_RxNotification",
+      "note": "the Authentic I-PDU"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "MAC variant",
+      "items": [
+        "Csm service: Csm_MacGenerate / Csm_MacVerify instead of the signature services",
+        "Key: the session key of the direction, held in the crypto driver",
+        "Authenticator: HMAC-SHA-256 tag of 16 bytes"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "One cyclic task",
+      "items": [
+        "All main functions shown run in one cyclic task, Os_TaskBswCycle",
+        "Sender: submit, authentication and socket write happen in one cycle",
+        "Receiver: verification follows in the cycle after the read that completes the PDU"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Where a bad PDU is stopped",
+      "items": [
+        "SoAd: unknown header ID, or a length outside the limits of the route",
+        "SecOC: layout, then freshness, then signature; the first failed check drops the PDU",
+        "The payload is not encrypted; board B sends no acknowledgement to the sender's SecOC"
+      ]
+    }
+  ]
+}

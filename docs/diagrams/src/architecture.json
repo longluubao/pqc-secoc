@@ -1,0 +1,789 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "PQC-SecOC port: who calls whom on the path of a secured PDU",
+    "output": "architecture.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/longluubao/pqc-secoc",
+      "provider": "github",
+      "revision": "4ba87d9e5df84b6fee36c0514c618a4a28f081ea"
+    },
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "Application: calls the basic software directly (no RTE)"
+        },
+        "backend": {
+          "label": "Services layer of the AUTOSAR namesake (placement by name only)"
+        },
+        "messagebus": {
+          "label": "ECU abstraction layer of the AUTOSAR namesake (placement by name only)"
+        },
+        "database": {
+          "label": "Crypto driver role: source/PQC (PQC_*) and source/Encrypt (Crypto_Mac_*)"
+        },
+        "security": {
+          "label": "Project-specific, no AUTOSAR namesake; post-quantum operations only through Csm"
+        },
+        "external": {
+          "label": "Outside the port. Not drawn: OpenSSL hash calls from PqcHs_Core.c and Csm_Pqc.c"
+        }
+      }
+    }
+  },
+  "layout": {
+    "mode": "grid"
+  },
+  "components": [
+    {
+      "id": "app",
+      "type": "frontend",
+      "label": "App_Tx | App_Rx",
+      "sublabel": "board A: sender build | board B: receiver build",
+      "tag": "new file: App_Hs.c; App_Tx.c extended",
+      "size": [
+        280,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/App/App_Tx.c",
+          "line": 28,
+          "end_line": 91,
+          "label": "sender build only; calls SecOC_TpTransmit"
+        },
+        {
+          "path": "Autosar_SecOC/source/App/App_Tx.c",
+          "line": 176,
+          "end_line": 187,
+          "label": "FVM_NoSession gate, PqcHs_Initiate (rekey)"
+        },
+        {
+          "path": "Autosar_SecOC/source/App/App_Rx.c",
+          "line": 197,
+          "end_line": 208,
+          "label": "other build: empty App_Rx stubs"
+        }
+      ],
+      "pos": [
+        160,
+        40
+      ]
+    },
+    {
+      "id": "osecum",
+      "type": "backend",
+      "label": "Os + EcuM",
+      "sublabel": "the one cyclic task Os_TaskBswCycle → EcuM_MainFunction…Stack → each main function",
+      "tag": "EcuM: extended",
+      "size": [
+        450,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/Os/Os_Cfg.c",
+          "line": 4,
+          "end_line": 47,
+          "label": "one task, one cyclic alarm"
+        },
+        {
+          "path": "Autosar_SecOC/source/EcuM/EcuM.c",
+          "line": 1123,
+          "end_line": 1141,
+          "label": "EcuM_MainFunctionSecurityStack"
+        },
+        {
+          "path": "Autosar_SecOC/source/main.c",
+          "line": 125,
+          "end_line": 150,
+          "label": "main: EcuM, StartOS, Os_MainFunction"
+        }
+      ],
+      "pos": [
+        470,
+        40
+      ]
+    },
+    {
+      "id": "com",
+      "type": "backend",
+      "label": "Com",
+      "sublabel": "delivery, Tx confirm",
+      "size": [
+        120,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/Com/Com.c",
+          "line": 1060,
+          "end_line": 1072,
+          "label": "Com_RxIndication to App_Rx"
+        },
+        {
+          "path": "Autosar_SecOC/source/Com/Com.c",
+          "line": 1014,
+          "end_line": 1037,
+          "label": "Com_TxConfirmation to App_Tx"
+        },
+        {
+          "path": "Autosar_SecOC/source/Com/Com.c",
+          "line": 1167,
+          "end_line": 1170,
+          "label": "Com_TpTxConfirmation"
+        }
+      ],
+      "pos": [
+        30,
+        190
+      ]
+    },
+    {
+      "id": "secoc",
+      "type": "backend",
+      "label": "SecOC + FVM",
+      "sublabel": "ML-DSA-65 signature or HMAC-SHA-256 tag",
+      "tag": "extended",
+      "size": [
+        220,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/SecOC/SecOC.c",
+          "line": 636,
+          "end_line": 700,
+          "label": "Tx: Csm job service selects the variant"
+        },
+        {
+          "path": "Autosar_SecOC/source/SecOC/SecOC.c",
+          "line": 1786,
+          "end_line": 1842,
+          "label": "Rx: verify, then PduR_SecOCIfRxIndication"
+        },
+        {
+          "path": "Autosar_SecOC/source/SecOC/FVM.c",
+          "line": 127,
+          "end_line": 173,
+          "label": "FVM_NoSession calls PqcHs; Rx freshness gate"
+        }
+      ],
+      "pos": [
+        190,
+        190
+      ]
+    },
+    {
+      "id": "csm",
+      "type": "backend",
+      "label": "Csm",
+      "sublabel": "job selects key and context",
+      "tag": "extended + new Csm_Pqc.c",
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/Csm/Csm.c",
+          "line": 862,
+          "end_line": 950,
+          "label": "Csm_SignatureGenerate calls CryIf"
+        },
+        {
+          "path": "Autosar_SecOC/source/Csm/Csm.c",
+          "line": 744,
+          "end_line": 796,
+          "label": "Csm_MacGenerate calls CryIf"
+        },
+        {
+          "path": "Autosar_SecOC/source/Csm/Csm_Pqc.c",
+          "line": 344,
+          "end_line": 390,
+          "label": "Csm_CustomService"
+        }
+      ],
+      "pos": [
+        710,
+        190
+      ]
+    },
+    {
+      "id": "pdur",
+      "type": "backend",
+      "label": "PduR",
+      "sublabel": "forwards SecOC ↔ SoAd, SecOC → Com",
+      "size": [
+        220,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/PduR/Pdur_SecOC.c",
+          "line": 40,
+          "end_line": 97,
+          "label": "to SoAd_TpTransmit, to Com"
+        },
+        {
+          "path": "Autosar_SecOC/source/PduR/PduR_SoAd.c",
+          "line": 97,
+          "end_line": 134,
+          "label": "from SoAd to SecOC"
+        }
+      ],
+      "pos": [
+        190,
+        340
+      ]
+    },
+    {
+      "id": "pqchs",
+      "type": "security",
+      "label": "PqcHs",
+      "sublabel": "handshake PQC-SecOC-HS-v1",
+      "tag": "new",
+      "size": [
+        180,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/PqcHs/PqcHs.c",
+          "line": 96,
+          "end_line": 101,
+          "label": "SoAd_SetUpperLayer(SOAD_UPPER_LAYER_HS)"
+        },
+        {
+          "path": "Autosar_SecOC/source/PqcHs/PqcHs_Core.c",
+          "line": 196,
+          "end_line": 333,
+          "label": "Csm calls of the handshake"
+        },
+        {
+          "path": "Autosar_SecOC/source/PqcHs/PqcHs_Core.c",
+          "line": 339,
+          "end_line": 406,
+          "label": "PqcHs_Install, SoAd_TpTransmit"
+        }
+      ],
+      "pos": [
+        470,
+        340
+      ],
+      "emphasis": true
+    },
+    {
+      "id": "soad",
+      "type": "backend",
+      "label": "SoAd",
+      "sublabel": "PDU header, TP interface, 2 upper layers, one peer",
+      "tag": "extended",
+      "size": [
+        280,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/SoAd/SoAd.c",
+          "line": 140,
+          "end_line": 213,
+          "label": "upper layers, routes, one socket connection"
+        },
+        {
+          "path": "Autosar_SecOC/source/SoAd/SoAd.c",
+          "line": 751,
+          "end_line": 857,
+          "label": "upper layer by header ID; RxIndication upcall"
+        },
+        {
+          "path": "Autosar_SecOC/source/SoAd/SoAd.c",
+          "line": 1872,
+          "end_line": 1946,
+          "label": "PDU header, TcpIp_TcpTransmit"
+        }
+      ],
+      "pos": [
+        160,
+        490
+      ]
+    },
+    {
+      "id": "cryif",
+      "type": "messagebus",
+      "label": "CryIf",
+      "sublabel": "forwards only: no crypto call",
+      "tag": "extended + new CryIf_Pqc.c",
+      "icon": "none",
+      "size": [
+        160,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/CryIf/CryIf.c",
+          "line": 82,
+          "end_line": 138,
+          "label": "MAC and signature forwarders"
+        },
+        {
+          "path": "Autosar_SecOC/source/CryIf/CryIf_Pqc.c",
+          "line": 1,
+          "end_line": 31,
+          "label": "KEM and HKDF forwarders"
+        },
+        {
+          "path": "Autosar_SecOC/source/CryIf/CryIf.c",
+          "line": 5,
+          "end_line": 8,
+          "label": "includes: no crypto library"
+        }
+      ],
+      "pos": [
+        710,
+        490
+      ]
+    },
+    {
+      "id": "tcpip",
+      "type": "backend",
+      "label": "TcpIp",
+      "sublabel": "POSIX sockets (SOCKETS back end) · EthIf, Ethernet: compiled, not on the path",
+      "size": [
+        420,
+        80
+      ],
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/TcpIp/TcpIp.c",
+          "line": 976,
+          "end_line": 988,
+          "label": "send()"
+        },
+        {
+          "path": "Autosar_SecOC/source/TcpIp/TcpIp.c",
+          "line": 1080,
+          "end_line": 1090,
+          "label": "accept()"
+        },
+        {
+          "path": "Autosar_SecOC/source/TcpIp/TcpIp.c",
+          "line": 1158,
+          "end_line": 1172,
+          "label": "recv(), TcpIp_RxIndication"
+        }
+      ],
+      "pos": [
+        90,
+        640
+      ]
+    },
+    {
+      "id": "cryptomac",
+      "type": "database",
+      "label": "Crypto_Mac",
+      "sublabel": "HMAC-SHA-256, session keys",
+      "icon": "none",
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/Encrypt/Crypto_Mac.c",
+          "line": 17,
+          "end_line": 46,
+          "label": "key store, EVP_MAC"
+        },
+        {
+          "path": "Autosar_SecOC/source/Encrypt/Crypto_Mac.c",
+          "line": 127,
+          "end_line": 156,
+          "label": "Crypto_Mac_Generate"
+        },
+        {
+          "path": "Autosar_SecOC/include/Encrypt/Crypto_Mac.h",
+          "line": 4,
+          "end_line": 7,
+          "label": "crypto driver primitive for MAC"
+        }
+      ],
+      "pos": [
+        610,
+        640
+      ],
+      "tag": "source/Encrypt"
+    },
+    {
+      "id": "pqc",
+      "type": "database",
+      "label": "PQC",
+      "sublabel": "ML-DSA-65, ML-KEM-768",
+      "tag": "new",
+      "icon": "none",
+      "size": [
+        130,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/PQC/PQC.c",
+          "line": 68,
+          "end_line": 100,
+          "label": "OQS_KEM_new, OQS_SIG_new"
+        },
+        {
+          "path": "Autosar_SecOC/source/PQC/PQC.c",
+          "line": 452,
+          "end_line": 496,
+          "label": "PQC_MLDSA_Sign"
+        },
+        {
+          "path": "Autosar_SecOC/source/PQC/PQC_KeyDerivation.c",
+          "line": 58,
+          "end_line": 117,
+          "label": "HKDF with EVP_KDF"
+        }
+      ],
+      "pos": [
+        790,
+        640
+      ],
+      "emphasis": true
+    },
+    {
+      "id": "kernel",
+      "type": "external",
+      "label": "Linux kernel",
+      "sublabel": "TCP/IP stack, Ethernet interface and driver",
+      "size": [
+        420,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/TcpIp/TcpIp.c",
+          "line": 30,
+          "end_line": 37,
+          "label": "POSIX socket headers"
+        },
+        {
+          "path": "Autosar_SecOC/include/TcpIp/TcpIp.h",
+          "line": 61,
+          "end_line": 64,
+          "label": "default backend: SOCKETS"
+        },
+        {
+          "path": "Autosar_SecOC/include/SoAd/SoAd.h",
+          "line": 80,
+          "end_line": 83,
+          "label": "default backend: SOCKETS"
+        }
+      ],
+      "pos": [
+        90,
+        820
+      ]
+    },
+    {
+      "id": "openssl",
+      "type": "external",
+      "label": "OpenSSL",
+      "sublabel": "HMAC, HKDF, SHA-2",
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Autosar_SecOC/CMakeLists.txt",
+          "line": 150,
+          "end_line": 172,
+          "label": "find_package, link line"
+        },
+        {
+          "path": "Autosar_SecOC/source/PqcHs/PqcHs_Core.c",
+          "line": 790,
+          "end_line": 797,
+          "label": "PqcHs: EVP_MD_fetch SHA384, called directly"
+        },
+        {
+          "path": "Autosar_SecOC/source/Csm/Csm_Pqc.c",
+          "line": 208,
+          "end_line": 218,
+          "label": "Csm_Pqc.c: SHA256() called directly"
+        }
+      ],
+      "pos": [
+        610,
+        820
+      ]
+    },
+    {
+      "id": "liboqs",
+      "type": "external",
+      "label": "liboqs 0.15.0",
+      "sublabel": "ML-DSA-65, ML-KEM-768",
+      "size": [
+        130,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Autosar_SecOC/CMakeLists.txt",
+          "line": 152,
+          "end_line": 172,
+          "label": "liboqs.a on the link line"
+        },
+        {
+          "path": "README.md",
+          "line": 14,
+          "end_line": 15,
+          "label": "liboqs 0.15.0"
+        },
+        {
+          "path": "Autosar_SecOC/source/PQC/PQC.c",
+          "line": 20,
+          "end_line": 20,
+          "label": "#include <oqs/oqs.h>"
+        }
+      ],
+      "pos": [
+        790,
+        820
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "This port. Main calls only; arrow = call, caller → callee. New: PQC, PqcHs, Csm_Pqc.c, CryIf_Pqc.c, App_Hs.c. Extended: SecOC, FVM, SoAd, Csm, CryIf, EcuM, App_Tx.c",
+      "wraps": [
+        "app",
+        "osecum",
+        "com",
+        "secoc",
+        "csm",
+        "pdur",
+        "pqchs",
+        "soad",
+        "cryif",
+        "tcpip",
+        "cryptomac",
+        "pqc"
+      ],
+      "pad": 24
+    },
+    {
+      "kind": "region",
+      "label": "Outside the port",
+      "wraps": [
+        "kernel",
+        "openssl",
+        "liboqs"
+      ],
+      "pad": 24
+    }
+  ],
+  "connections": [
+    {
+      "id": "app-secoc",
+      "from": "app",
+      "to": "secoc",
+      "label": "SecOC_TpTransmit",
+      "variant": "emphasis"
+    },
+    {
+      "id": "secoc-pdur-tx",
+      "from": "secoc",
+      "to": "pdur",
+      "label": "PduR_SecOCTransmit",
+      "variant": "emphasis"
+    },
+    {
+      "id": "pdur-soad-tx",
+      "from": "pdur",
+      "to": "soad",
+      "label": "SoAd_TpTransmit",
+      "variant": "emphasis"
+    },
+    {
+      "id": "soad-tcpip-tx",
+      "from": "soad",
+      "to": "tcpip",
+      "label": "TcpIp_TcpTransmit",
+      "variant": "emphasis"
+    },
+    {
+      "id": "tcpip-kernel",
+      "from": "tcpip",
+      "to": "kernel",
+      "label": "send() / recv()",
+      "variant": "emphasis"
+    },
+    {
+      "id": "tcpip-soad-rx",
+      "from": "tcpip",
+      "to": "soad",
+      "label": "SoAd_RxIndication"
+    },
+    {
+      "id": "soad-pdur-rx",
+      "from": "soad",
+      "to": "pdur",
+      "label": "PduR_SoAdTpRxIndication"
+    },
+    {
+      "id": "pdur-secoc-rx",
+      "from": "pdur",
+      "to": "secoc",
+      "label": "SecOC_TpRxIndication"
+    },
+    {
+      "id": "secoc-pdur-deliver",
+      "from": "secoc",
+      "to": "pdur",
+      "label": "PduR_SecOCIfRxIndication"
+    },
+    {
+      "id": "pdur-com",
+      "from": "pdur",
+      "to": "com",
+      "label": "Com_RxIndication"
+    },
+    {
+      "id": "com-app",
+      "from": "com",
+      "to": "app",
+      "label": "App_Rx_RxNotification"
+    },
+    {
+      "id": "secoc-csm",
+      "from": "secoc",
+      "to": "csm",
+      "label": "Csm_{Signature,Mac}{Generate,Verify}"
+    },
+    {
+      "id": "csm-cryif",
+      "from": "csm",
+      "to": "cryif",
+      "label": "synchronous call, no job interface",
+      "labelAt": [
+        790,
+        424
+      ]
+    },
+    {
+      "id": "cryif-pqc",
+      "from": "cryif",
+      "to": "pqc",
+      "label": "sign, verify, KEM, HKDF"
+    },
+    {
+      "id": "cryif-cryptomac",
+      "from": "cryif",
+      "to": "cryptomac",
+      "label": "HMAC tag, MAC keys"
+    },
+    {
+      "id": "pqc-liboqs",
+      "from": "pqc",
+      "to": "liboqs",
+      "label": "OQS_SIG_*, OQS_KEM_*"
+    },
+    {
+      "id": "pqc-openssl",
+      "from": "pqc",
+      "to": "openssl",
+      "label": "EVP_KDF"
+    },
+    {
+      "id": "cryptomac-openssl",
+      "from": "cryptomac",
+      "to": "openssl",
+      "label": "EVP_MAC"
+    },
+    {
+      "id": "pqchs-soad",
+      "from": "pqchs",
+      "to": "soad",
+      "label": "SoAd_SetUpperLayer, SoAd_TpTransmit",
+      "fromSide": "bottom",
+      "toSide": "right"
+    },
+    {
+      "id": "pqchs-csm",
+      "from": "pqchs",
+      "to": "csm",
+      "label": "Csm_CustomService, Csm_{Signature,Mac,Key}*"
+    },
+    {
+      "id": "pqchs-secoc",
+      "from": "pqchs",
+      "to": "secoc",
+      "label": "FVM_SessionInstall"
+    },
+    {
+      "id": "soad-pqchs-rx",
+      "from": "soad",
+      "to": "pqchs",
+      "label": "PqcHs_SoAdTpRxIndication",
+      "fromSide": "right",
+      "toSide": "bottom"
+    },
+    {
+      "id": "secoc-pqchs",
+      "from": "secoc",
+      "to": "pqchs",
+      "label": "PqcHs_IsEstablished (FVM_NoSession)"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "slate",
+      "title": "Reading the drawing",
+      "items": [
+        "An arrow is a call: caller → callee. Only the main calls are drawn. Heavy arrows: a secured PDU going down on board A (sender build, handshake initiator). The ...RxIndication arrows of the left column: the same PDU going up on board B (receiver build, responder). The handshake messages use the SoAd and TcpIp arrows in both directions on both boards. The two builds come from one tree, one executable per board.",
+        "Colours give the layer of the module's AUTOSAR namesake. This is a placement by name only.",
+        "new: a directory or file that holds post-quantum code only. extended: a file of the module carries post-quantum identifiers; App_Tx.c is one of them (PqcHs_Initiate). main.c and GUIInterface.c carry such identifiers too and are not drawn.",
+        "One peer: SoAd is configured with one socket connection and refuses a further one while a stream is active, and PqcHs has one instance. Every stream therefore has one receiver."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Order of the calls",
+      "items": [
+        "Transmit, board A: App_Tx_Submit → SecOC_TpTransmit; SecOC_MainFunctionTx authenticates and calls PduR_SecOCTransmit → SoAd_TpTransmit; SoAd_MainFunctionTx writes the PDU header and calls TcpIp_TcpTransmit → send().",
+        "Receive, board B: SoAd_MainFunctionRx polls TcpIp_MainFunction: recv() → TcpIp_RxIndication → SoAd_RxIndication, which only appends the bytes to the stream buffer. SoAd_RxStreamProcess then cuts the stream into PDUs by the PDU header and calls PduR_SoAdStartOfReception, PduR_SoAdTpCopyRxData and PduR_SoAdTpRxIndication, which forward to SecOC_StartOfReception, SecOC_CopyRxData and SecOC_TpRxIndication. SecOC_MainFunctionRx checks the freshness value (FVM_GetRxFreshness fails while FVM_NoSession → PqcHs_IsEstablished reports no session), then verifies, then calls PduR_SecOCIfRxIndication → Com_RxIndication → App_Rx_RxNotification.",
+        "SecOC also reports the result of each verification attempt straight to the application (the Ethernet rows use propagation mode SECOC_BOTH): SecOC_VerificationStatusCallout is defined in App_Rx.c. This call is not drawn.",
+        "Transmit confirmation, not drawn: PduR_SoAdTpTxConfirmation → SecOC_TpTxConfirmation → PduR_SecOCTpTxConfirmation → Com_TpTxConfirmation → App_Tx_TxConfirmation. On the normal path the confirmation and the delivery are the two places where Com appears; App_Tx does not call Com. One more call site exists: after a confirmation with a result other than E_OK, Com_MainFunctionTx calls Com_TriggerIPDUSend → PduR_ComTransmit → SecOC_IfTransmit with Com's own Tx buffer, which the application never writes.",
+        "SoAd reaches PduR and PqcHs through a table of function pointers (SoAd_UpperLayers); the route of a PDU header ID names the upper layer. The handshake messages arrive through PqcHs_SoAdTpStartOfReception, PqcHs_SoAdTpCopyRxData and PqcHs_SoAdTpRxIndication, and leave through SoAd_TpTransmit and PqcHs_SoAdTpCopyTxData."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Crypto stack",
+      "items": [
+        "The Csm job that a SecOC PDU row references decides between signature and MAC and supplies the key and the context string.",
+        "ML-DSA-65 signs with the long-term identity key held in the Csm; the session contributes only the context string. HMAC-SHA-256 uses the session MAC keys, which PqcHs installs through Csm_KeyElementSet → CryIf_KeyElementSet → Crypto_Mac_KeyElementSet.",
+        "PqcHs calls the Csm for every post-quantum operation: Csm_CustomService (ML-KEM-768 key generation, encapsulation and decapsulation, the handshake HKDF, discard of the pending secrets), Csm_SignatureGenerate and Csm_SignatureVerify (ML-DSA-65 with the handshake context), Csm_MacGenerate and Csm_MacVerify (key confirmation), Csm_KeyElementGet (key identifiers), Csm_KeyElementSet and Csm_KeySetValid (key installation).",
+        "A queue exists inside the Csm (Csm_JobQueue). SecOC and PqcHs call with CRYPTO_OPERATIONMODE_SINGLECALL and never start a job, so on these paths the Csm calls CryIf inside the caller's call.",
+        "Crypto_Mac.c is the only file of the directory source/Encrypt; it computes and checks HMAC tags."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Not drawn",
+      "items": [
+        "Direct calls past the layers: PqcHs_Core.c hashes the handshake transcript with OpenSSL SHA-384 (EVP_Digest*), Csm_Pqc.c calls SHA256() for the key identifiers, and Csm.c calls PQC_MLDSA_LoadPeerPublicKey without CryIf.",
+        "Further calls into PqcHs: EcuM calls PqcHs_Init, PqcHs_Initiate (sender build) and PqcHs_MainFunction; App_Tx calls PqcHs_Initiate for a rekey and FVM_NoSession before it releases a PDU; App_Hs reads PqcHs_ReadAttempt and PqcHs_GetSession for its log; SoAd also calls PqcHs_SoAdTpTxConfirmation and PqcHs_SoConModeChg through the table.",
+        "Further calls out of PqcHs: SecOC_TxSessionHold, SecOC_TxSessionFlushed and SecOC_RxSessionDrained (no session PDU is authenticated while the keys change) and SoAd_RxGateRelease.",
+        "EthIf and the EthDrv_* functions of source/Ethernet: both payload back ends default to SOCKETS, so TcpIp calls the POSIX socket API.",
+        "Status reports from SecOC to BswM (BswM_RequestMode) and from SoAd to ApBridge (ApBridge_ReportServiceStatus), the routing-group gate in SoAd (SoAd_IsRoutingAllowedForPdu; BswM enables the group of the secured PDUs), the other compiled modules of the tree, and the Csm-internal queue."
+      ]
+    }
+  ]
+}

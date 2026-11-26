@@ -1,0 +1,409 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Handshake PQC-SecOC-HS-v1: ML-KEM-768 key establishment, ML-DSA-65 authentication, session switch",
+    "locale": "en",
+    "output": "handshake.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/longluubao/pqc-secoc",
+      "provider": "github",
+      "revision": "4ba87d9e5df84b6fee36c0514c618a4a28f081ea"
+    },
+    "legend": {
+      "entries": {
+        "emphasis": {
+          "label": "M1..M4: one SoAd PDU each (8-byte PDU header), TCP connection of Secured I-PDUs"
+        },
+        "default": {
+          "label": "Call into the Csm (ML-KEM-768, ML-DSA-65, HKDF, HMAC-SHA-256)"
+        },
+        "security": {
+          "label": "PqcHs_Install: MAC keys (MAC variant of SecOC), PDU signature context, counters"
+        }
+      }
+    }
+  },
+  "participants": [
+    {
+      "id": "csmA",
+      "type": "security",
+      "label": "Csm on board A",
+      "sublabel": "own key, pinned pk_B, session keys",
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/Csm/Csm_Pqc.c",
+          "line": 45,
+          "end_line": 60,
+          "label": "job table, KDF labels"
+        },
+        {
+          "path": "Autosar_SecOC/source/Csm/Csm_Pqc.c",
+          "line": 378,
+          "end_line": 474,
+          "label": "ML-KEM jobs, KDF, erasure of dk"
+        },
+        {
+          "path": "Autosar_SecOC/source/Csm/Csm.c",
+          "line": 526,
+          "end_line": 549,
+          "label": "own key and peer public keys loaded"
+        }
+      ]
+    },
+    {
+      "id": "initA",
+      "type": "backend",
+      "label": "Initiator A (board A)",
+      "sublabel": "PqcHs, sender build, TCP client",
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/PqcHs/PqcHs_Core.c",
+          "line": 439,
+          "end_line": 615,
+          "label": "initiator: M1, M2, M3, install, M4"
+        },
+        {
+          "path": "Autosar_SecOC/include/PqcHs/PqcHs_Cfg.h",
+          "line": 33,
+          "end_line": 38,
+          "label": "sender build = initiator"
+        },
+        {
+          "path": "Autosar_SecOC/source/SoAd/SoAd.c",
+          "line": 1007,
+          "end_line": 1031,
+          "label": "sender connects, receiver listens"
+        }
+      ]
+    },
+    {
+      "id": "respB",
+      "type": "backend",
+      "label": "Responder B (board B)",
+      "sublabel": "PqcHs, receiver build, TCP listener",
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/PqcHs/PqcHs_Core.c",
+          "line": 632,
+          "end_line": 772,
+          "label": "responder: M1, M2, M3, install, M4"
+        },
+        {
+          "path": "Autosar_SecOC/include/PqcHs/PqcHs_Cfg.h",
+          "line": 33,
+          "end_line": 38,
+          "label": "receiver build = responder"
+        },
+        {
+          "path": "Autosar_SecOC/source/SoAd/SoAd.c",
+          "line": 1007,
+          "end_line": 1031,
+          "label": "sender connects, receiver listens"
+        }
+      ]
+    },
+    {
+      "id": "csmB",
+      "type": "security",
+      "label": "Csm on board B",
+      "sublabel": "own key, pinned pk_A, session keys",
+      "sources": [
+        {
+          "path": "Autosar_SecOC/source/Csm/Csm.c",
+          "line": 526,
+          "end_line": 549,
+          "label": "own key and peer public keys loaded"
+        },
+        {
+          "path": "Autosar_SecOC/source/Csm/Csm_Pqc.c",
+          "line": 134,
+          "end_line": 178,
+          "label": "HKDF: four keys, ss and PRK erased"
+        },
+        {
+          "path": "Autosar_SecOC/source/Csm/Csm.c",
+          "line": 163,
+          "end_line": 167,
+          "label": "MAC jobs: HMAC-SHA-256, key ids"
+        }
+      ]
+    }
+  ],
+  "segments": [
+    {
+      "from": 158,
+      "to": 314,
+      "label": "PQC-SecOC-HS-v1. A = sender build, TCP client; B = receiver build, TCP listener. A: fresh ML-KEM-768 key pair per attempt; M1: no signature, no MAC"
+    },
+    {
+      "from": 338,
+      "to": 494,
+      "label": "B on M1 (at most one per T_min): ID_A must equal SHA-256 of B's one pinned peer public key; B signs role byte 'R' || transcript hash th2 (SHA-384)"
+    },
+    {
+      "from": 518,
+      "to": 710,
+      "label": "B: HKDF (HMAC-SHA-256) gives four keys: kc-r, kc-i = key-confirmation keys; auth-i2r, auth-r2i = session MAC keys. B installs nothing yet (T_pend)"
+    },
+    {
+      "from": 734,
+      "to": 879,
+      "label": "A on M2: ID_B must equal the key id of A's one pinned peer key; sig_B is verified BEFORE the decapsulation key dk is used; decapsulation erases dk"
+    },
+    {
+      "from": 903,
+      "to": 1153,
+      "label": "A: same HKDF (ss erased right after HKDF-Extract); key-confirmation tag mac_B checked; sig_A over role byte 'I' || th3; tag mac_A, then kc-i erased"
+    },
+    {
+      "from": 1177,
+      "to": 1253,
+      "label": "A cut-over: SecOC_TxSessionHold(TRUE), SecOC authenticates no further session PDU; M3 once SecOC_TxSessionFlushed() (bound: T_flush)"
+    },
+    {
+      "from": 1277,
+      "to": 1408,
+      "label": "A installs when M3 is handed to the TCP socket: MAC keys auth-i2r, auth-r2i; signature context \"PQC-SecOC-PDU-v1\" || sess; freshness counters reset"
+    },
+    {
+      "from": 1432,
+      "to": 1762,
+      "label": "B on M3: the stream behind M3 is gated; sig_A and mac_A are checked; B installs when SecOC has drained, then sends M4 and reopens the stream"
+    },
+    {
+      "from": 1786,
+      "to": 1862,
+      "label": "A on M4: M4 only ends A's attempt; kc-r is erased. No valid M4 within T_A: a new handshake starts; the installed keys stay"
+    }
+  ],
+  "messages": [
+    {
+      "id": "kem-keygen",
+      "from": "initA",
+      "to": "csmA",
+      "y": 184,
+      "label": "CSM_JOBID_KEM_KEYGEN -> ek",
+      "variant": "default",
+      "note": "Csm_CustomService: ML-KEM-768 key generation. ek = encapsulation key; dk stays in the Csm."
+    },
+    {
+      "id": "m1",
+      "from": "initA",
+      "to": "respB",
+      "y": 253,
+      "label": "M1, 1217 bytes: ver || ID_A || ek",
+      "variant": "emphasis",
+      "note": "1 + 32 + 1184 bytes, plus the 8-byte SoAd PDU header (also M2..M4). ID_A = SHA-256 of A's ML-DSA-65 public key. A waits for M2 at most T_A."
+    },
+    {
+      "id": "kem-encaps",
+      "from": "respB",
+      "to": "csmB",
+      "y": 364,
+      "label": "CSM_JOBID_KEM_ENCAPS -> ct",
+      "variant": "default",
+      "note": "Csm_CustomService: ML-KEM-768 encapsulation to ek. The shared secret ss stays in the Csm."
+    },
+    {
+      "id": "sign-b",
+      "from": "respB",
+      "to": "csmB",
+      "y": 433,
+      "label": "Csm_SignatureGenerate -> sig_B",
+      "variant": "default",
+      "note": "ML-DSA-65 over role byte 'R' || th2. PqcHs itself computes th2 = SHA-384(L || M1 || ver || ID_B || ct), with L = \"PQC-SecOC-HS-v1\"."
+    },
+    {
+      "id": "kdf-b",
+      "from": "respB",
+      "to": "csmB",
+      "y": 544,
+      "label": "CSM_JOBID_HS_KDF -> 4 keys",
+      "variant": "default",
+      "note": "HKDF: salt th2, input ss. ss is erased right after HKDF-Extract."
+    },
+    {
+      "id": "mac-b",
+      "from": "respB",
+      "to": "csmB",
+      "y": 602,
+      "label": "Csm_MacGenerate -> mac_B",
+      "variant": "default",
+      "note": "Key-confirmation tag: HMAC-SHA-256 with kc-r over a transcript hash."
+    },
+    {
+      "id": "m2",
+      "from": "respB",
+      "to": "initA",
+      "y": 660,
+      "label": "M2, 4462 bytes: ver || ID_B || ct || sig_B || mac_B",
+      "variant": "emphasis",
+      "note": "1 + 32 + 1088 + 3309 + 32 bytes. The four keys stay pending in PqcHs and are wiped if T_pend expires."
+    },
+    {
+      "id": "verify-b",
+      "from": "initA",
+      "to": "csmA",
+      "y": 760,
+      "label": "Csm_SignatureVerify sig_B",
+      "variant": "default",
+      "note": "ML-DSA-65 over 'R' || th2 with the pinned public key of B. A forged M2 is discarded and changes nothing."
+    },
+    {
+      "id": "kem-decaps",
+      "from": "initA",
+      "to": "csmA",
+      "y": 829,
+      "label": "CSM_JOBID_KEM_DECAPS (ct)",
+      "variant": "default",
+      "note": "Csm_CustomService: ML-KEM-768 decapsulation of ct. ss stays in the Csm; dk is erased in the same call."
+    },
+    {
+      "id": "kdf-a",
+      "from": "initA",
+      "to": "csmA",
+      "y": 929,
+      "label": "CSM_JOBID_HS_KDF -> 4 keys",
+      "variant": "default",
+      "note": "Same HKDF as on B. ss is erased right after HKDF-Extract."
+    },
+    {
+      "id": "macv-b",
+      "from": "initA",
+      "to": "csmA",
+      "y": 987,
+      "label": "Csm_MacVerify mac_B",
+      "variant": "default",
+      "note": "HMAC-SHA-256 with kc-r. A wrong tag ends the attempt."
+    },
+    {
+      "id": "sign-a",
+      "from": "initA",
+      "to": "csmA",
+      "y": 1045,
+      "label": "Csm_SignatureGenerate -> sig_A",
+      "variant": "default",
+      "note": "ML-DSA-65 over role byte 'I' || th3. PqcHs itself computes th3 = SHA-384(L || M1 || M2)."
+    },
+    {
+      "id": "mac-a",
+      "from": "initA",
+      "to": "csmA",
+      "y": 1114,
+      "label": "Csm_MacGenerate -> mac_A",
+      "variant": "default",
+      "note": "HMAC-SHA-256 with kc-i; PqcHs then erases kc-i."
+    },
+    {
+      "id": "m3",
+      "from": "initA",
+      "to": "respB",
+      "y": 1203,
+      "label": "M3, 3342 bytes: ver || sig_A || mac_A",
+      "variant": "emphasis",
+      "note": "1 + 3309 + 32 bytes. SoAd on B parses nothing behind M3 until PqcHs calls SoAd_RxGateRelease."
+    },
+    {
+      "id": "install-a",
+      "from": "initA",
+      "to": "csmA",
+      "y": 1303,
+      "label": "PqcHs_Install, no wait for M4",
+      "variant": "security",
+      "note": "On TxConfirmation(M3) = E_OK. Csm_KeyElementSet: auth-i2r = Tx key, auth-r2i = Rx key (MAC variant of SecOC); context of the PDU signatures. FVM_SessionInstall: Tx counters of the session streams. Then SecOC_TxSessionHold(FALSE). sess = SHA-384(L || M1 || M2 || M3)."
+    },
+    {
+      "id": "verify-a",
+      "from": "respB",
+      "to": "csmB",
+      "y": 1458,
+      "label": "Csm_SignatureVerify sig_A",
+      "variant": "default",
+      "note": "ML-DSA-65 over 'I' || th3 with the pinned public key of A."
+    },
+    {
+      "id": "macv-a",
+      "from": "respB",
+      "to": "csmB",
+      "y": 1516,
+      "label": "Csm_MacVerify mac_A",
+      "variant": "default",
+      "note": "HMAC-SHA-256 with kc-i; PqcHs then erases kc-i and waits until SecOC_RxSessionDrained() is TRUE."
+    },
+    {
+      "id": "install-b",
+      "from": "respB",
+      "to": "csmB",
+      "y": 1585,
+      "label": "PqcHs_Install, before M4",
+      "variant": "security",
+      "note": "As on A, with Tx key auth-r2i and Rx key auth-i2r; Rx freshness counters of the session streams reset."
+    },
+    {
+      "id": "mac-ack",
+      "from": "respB",
+      "to": "csmB",
+      "y": 1654,
+      "label": "Csm_MacGenerate -> mac_ack",
+      "variant": "default",
+      "note": "Key-confirmation tag: HMAC-SHA-256 with kc-r over sess (session hash)."
+    },
+    {
+      "id": "m4",
+      "from": "respB",
+      "to": "initA",
+      "y": 1712,
+      "label": "M4, 33 bytes: ver || mac_ack",
+      "variant": "emphasis",
+      "note": "1 + 32 bytes. B then erases kc-r and calls SoAd_RxGateRelease: the stream behind M3 is parsed again."
+    },
+    {
+      "id": "macv-ack",
+      "from": "initA",
+      "to": "csmA",
+      "y": 1812,
+      "label": "Csm_MacVerify mac_ack",
+      "variant": "default",
+      "note": "Valid: the attempt ends with PQCHS_RESULT_OK; kc-r is erased. A wrong mac_ack is only discarded."
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "When each side switches",
+      "items": [
+        "A: PqcHs_Install when TxConfirmation(M3) is E_OK (M3 handed to the TCP socket); A does not wait for M4.",
+        "B: PqcHs_Install after sig_A and mac_A are valid and SecOC_RxSessionDrained() is TRUE; then M4, then SoAd_RxGateRelease.",
+        "M4 only ends A's attempt."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "What PqcHs_Install writes",
+      "items": [
+        "auth-i2r and auth-r2i as Tx / Rx MAC keys of the MAC variant of SecOC.",
+        "\"PQC-SecOC-PDU-v1\" || sess as context of the PDU signatures.",
+        "FVM_SessionInstall: freshness counters of the session streams reset."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Erasure",
+      "items": [
+        "dk: inside the decapsulation call. dk and ss never leave the Csm.",
+        "ss: right after HKDF-Extract.",
+        "Key-confirmation keys: kc-i after mac_A; kc-r after mac_ack (B) or after M4 (A)."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Transport",
+      "items": [
+        "M1..M4 use the TCP connection of the Secured I-PDUs.",
+        "Each message is one SoAd PDU with an 8-byte PDU header; the sizes on the drawing are without it."
+      ]
+    }
+  ]
+}

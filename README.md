@@ -25,6 +25,132 @@ This repository makes no claim of conformance or compliance with any standard. W
 test message in the code uses such a word, it describes design intent and is not a statement of
 conformity.
 
+## How it works
+
+Four diagrams, drawn from the code at the tag `dataset-v2.0.0`. They carry no measured values. Where
+a module is placed in a layer, the layer is that of the module's AUTOSAR namesake: a placement by
+name, not a statement of conformance. `docs/diagrams/README.md` says what the diagrams rest on and
+how to make them again; their sources, with the file and lines behind every box, are in
+`docs/diagrams/src/`. The small notes in a diagram read better at full size: open its SVG file in
+`docs/diagrams/`.
+
+### Who calls whom on the path of a secured PDU
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/architecture.dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/architecture.light.svg">
+  <img alt="Layered block diagram: the application calls SecOC; SecOC calls the Csm, which calls CryIf, which calls the crypto driver code in PQC and Crypto_Mac, which calls liboqs and OpenSSL; SecOC sends through PduR, SoAd and TcpIp to the Linux kernel; the handshake component PqcHs sits beside PduR on SoAd and calls the Csm." src="docs/diagrams/architecture.light.svg" width="900">
+</picture>
+
+An arrow is a call, from caller to callee; only the main calls are drawn. The heavy arrows are a
+secured PDU going down on board A (sender build, handshake initiator); the lowest one, into the
+kernel, also stands for `recv()` on board B. The `...RxIndication` arrows of the left column are the
+same PDU going up on board B (receiver build, responder), delivered through
+`PduR_SecOCIfRxIndication`, `Com_RxIndication` and `App_Rx_RxNotification`.
+
+- The application calls the basic software directly; there is no RTE. On the normal path Com appears
+  only in the transmit confirmation and in the delivery of a verified PDU.
+- The Csm job that a SecOC PDU row references decides between signature and MAC and supplies the key
+  and the context string. ML-DSA-65 signs with the long-term identity key held in the Csm; the
+  session gives the signature its context string and no key. HMAC-SHA-256 uses the session MAC keys,
+  which PqcHs installs.
+- A queue exists inside the Csm, and these paths never enter it: SecOC and PqcHs call with
+  `CRYPTO_OPERATIONMODE_SINGLECALL` and never start a job, so the Csm calls CryIf inside the
+  caller's call. Below the Csm there is no job interface. CryIf makes no cryptographic call of its
+  own; the cryptography is computed in `source/PQC` (liboqs; HKDF through OpenSSL) and in
+  `source/Encrypt/Crypto_Mac.c` (HMAC through OpenSSL), the only file of that directory.
+- PqcHs is a second upper layer of SoAd beside PduR. Its messages use the SoAd and TcpIp arrows in
+  both directions on both boards and pass neither PduR nor SecOC; every post-quantum operation of
+  the handshake goes through the Csm.
+- SoAd has one socket connection and PqcHs one instance, so every stream has one receiver.
+- After start-up, everything runs in one cyclic task, `Os_TaskBswCycle`, which calls the main
+  functions through EcuM.
+
+Not drawn: calls past the layers (among them: `PqcHs_Core.c` hashes the handshake transcript with
+OpenSSL SHA-384, `Csm_Pqc.c` calls `SHA256()` for the key identifiers, `Csm.c` calls
+`PQC_MLDSA_LoadPeerPublicKey` without CryIf, and SecOC reports each verification result straight to
+the application through `SecOC_VerificationStatusCallout`); the transmit confirmation back to the
+application; the other callers of PqcHs (EcuM, App_Tx, App_Hs) and its calls that hold and release
+the session streams; the status reports to BswM and ApBridge and the routing-group gate in SoAd;
+EthIf and the Ethernet driver of the tree, which are compiled and not on the path, because both
+payload back ends default to POSIX sockets; and the other compiled modules of the tree.
+
+### Handshake `PQC-SecOC-HS-v1`
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/handshake.dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/handshake.light.svg">
+  <img alt="Sequence diagram of the handshake PQC-SecOC-HS-v1 between the initiator gateway on board A and the responder gateway on board B, each with its Csm: the four messages M1 to M4 with their fields and sizes, the main Csm calls of each side in order, and the two installation steps." src="docs/diagrams/handshake.light.svg" width="900">
+</picture>
+
+A (sender build, TCP client) sends M1 with a fresh ML-KEM-768 encapsulation key; M1 carries no
+signature and no MAC. B compares `ID_A` with the identifier of its one pinned peer key, encapsulates,
+signs with ML-DSA-65 and answers with M2, and installs nothing yet. A verifies `sig_B` before it uses
+the decapsulation key, derives the same four keys, stops SecOC from authenticating further session
+PDUs, sends M3 once those already handed down have left (the attempt fails if that takes longer than
+`T_flush`), and installs as soon as M3 has been handed to the TCP socket, without waiting for M4. B
+parses nothing behind M3 until it has checked `sig_A` and `mac_A` and installed, which it does when
+SecOC has drained; then it sends M4 and reopens the stream. M4 only ends A's attempt.
+
+- Installation writes the two session MAC keys (`auth-i2r`, `auth-r2i`) for the MAC variant of SecOC
+  and the context `"PQC-SecOC-PDU-v1"` followed by the session hash for the PDU signatures, and
+  resets the freshness counters of the session streams.
+- The decapsulation key is erased inside the decapsulation call and the shared secret right after
+  HKDF-Extract; the Csm returns neither to its caller. The key-confirmation keys are erased after
+  their last use.
+- Outside liboqs, two hash functions are used: SHA-384 for the transcript hashes, and SHA-256 for
+  the key identifiers and, as HMAC-SHA-256, for the HKDF and the tags.
+- M1 to M4 travel as SoAd PDUs with an 8-byte PDU header on the TCP connection of the Secured I-PDUs;
+  the sizes in the drawing are without that header. `T_A`, `T_pend`, `T_min` and `T_flush` are
+  configuration constants.
+
+### One Secured I-PDU from board A to board B
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/pdu-path.dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/pdu-path.light.svg">
+  <img alt="Sequence diagram of one Secured I-PDU of the signature variant: on board A the application hands the Authentic I-PDU to SecOC, SecOC has it signed through the Csm, and SoAd writes it to the TCP socket; on board B SoAd cuts it out of the TCP stream, SecOC checks layout, freshness and signature, and the verified PDU is delivered to the application." src="docs/diagrams/pdu-path.light.svg" width="900">
+</picture>
+
+One Secured I-PDU of the signature variant, from the application on board A to the application on
+board B. All main functions shown run in the one cyclic task: on the sender, submit, authentication
+and socket write happen in one cycle; on the receiver, verification follows in the cycle after the
+read that completes the PDU.
+
+- The transmit confirmation is issued when the socket has accepted the bytes. Board B sends no
+  acknowledgement to the sender's SecOC.
+- A bad PDU is stopped in two places. SoAd discards a PDU with an unknown header ID or a length
+  outside the limits of the route; a length field above its receive buffer closes the connection.
+  SecOC checks the layout, then the freshness value, then the signature; the first failed check
+  drops the PDU, the freshness counter stays, and later PDUs are still routed.
+- The MAC variant differs in the Csm service (`Csm_MacGenerate` and `Csm_MacVerify`), the key (the
+  session key of the direction, held in the crypto driver) and the authenticator (an HMAC-SHA-256
+  tag of 16 bytes).
+- The payload is not encrypted.
+
+### From a two-board run to a number in the article
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/measurement-pipeline.dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/measurement-pipeline.light.svg">
+  <img alt="Data-flow diagram in four stages: the driver machine starts a run on the two boards over SSH; the files are copied into a run directory and checked; the analysis toolkit and a second reader each compute the numbers from the raw files; the outputs of the toolkit are merged into the numbers file that the article reads." src="docs/diagrams/measurement-pipeline.light.svg" width="900">
+</picture>
+
+- Who checks: `run_bench_net.sh` judges the validity gates of a run from the snapshots taken on the
+  boards and from the CSV files, and writes `EXCLUDED` with the reason; the drivers put the output
+  of the checkers into `check.txt`; `make_tables.py` marks every number of a `DRY_RUN`, `PILOT` or
+  `EXCLUDED` run as not a result, and `merge_numbers.py` stops on such an input unless
+  `--allow-marked` is given; a reader in `campaign/own/` computes the quantities it covers again
+  from the raw files, with its own code, and compares them key by key with `numbers.csv`.
+- Documented, not enforced by this code: acceptance of a run (driver status 0, no `EXCLUDED` file,
+  the second reader, where the list names one, agrees). `campaign/accepted_runs.tsv` records its
+  outcome, and no program in the repository reads that list; `merge_numbers.py` merges the analysis
+  directories it is given.
+- Not in this repository: the run directories (they are in the dataset), the scripts that sequenced
+  the measurement sessions, the analysis outputs, the merged numbers file and the article.
+- Not drawn: the single-board runs (most of them made by `run_single_node.sh` on a board), which
+  the list of accepted runs holds as well.
+
 ## Layout
 
 | Path | Content |
@@ -37,6 +163,7 @@ conformity.
 | `analysis-toolkit` | turns a run directory into tables, figures and numbers; its own `README.md` and tests |
 | `campaign` | `accepted_runs.tsv`, the list of accepted run directories with their key prefixes; `clock_inputs/inputs.tsv`, the list of probe files behind the clock keys; `e9_tries.tsv` and `cells2_tries.tsv`, the runs of the latency cells and of the last cells with their status; `e9_not_started.tsv`, run identifiers under which nothing was measured; `runs_not_used.tsv`, valid runs of a cell that already had its result; `own/`: second, independent readers of the data; `boardlock.sh`, the board lock the drivers call |
 | `docs` | `DATA_SCHEMA.md` (file formats and validity rules of the run directories), `CAMPAIGN.md` (the measurement plan and its rules), `EXPERIMENTS.md` (the command line of every experiment and the validity rules of the drivers), `SPEC.md` (the specification of the networked port and of the measurement campaign, with the handshake) and `E9_SPEC.md` (the specification of the latency experiment E9, with its addenda), public editions |
+| `docs/diagrams` | the four diagrams of the section "How it works" as light and dark SVG files, their sources in `src/`, and a `README.md` on how to make them again |
 
 The scripts that sequenced the measurement sessions are not in this repository: they name
 directories and an SSH helper of the measuring workstation and do not run elsewhere. They are
@@ -225,6 +352,11 @@ the dataset.
 
 The dataset is at https://doi.org/10.5281/zenodo.24506181, a version of the record
 https://doi.org/10.5281/zenodo.21361255.
+
+The dataset (version 2.0.0) and the `EDITS.tsv` in it describe this repository at the tag
+`dataset-v2.0.0`. The section "How it works" of this file and the directory `docs/diagrams` were
+added after that tag. They are not in the dataset, and nothing under `Autosar_SecOC`, `scripts`,
+`analysis-toolkit` or `campaign` was changed with them.
 
 ## License
 
